@@ -3,7 +3,6 @@ import pandas as pd
 import numpy as np
 import joblib
 import plotly.express as px
-import plotly.figure_factory as ff
 
 # Configuración de página
 st.set_page_config(
@@ -12,7 +11,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# Cargar modelo serializado y datos limpios para visualización
+# Cargar modelo serializado y datos limpios
 @st.cache_resource
 def cargar_modelo():
     return joblib.load("modelo_diabetes.joblib")
@@ -32,7 +31,6 @@ df = cargar_datos()
 
 # Barra lateral con información institucional
 with st.sidebar:
-    st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Python-logo-notext.svg/120px-Python-logo-notext.svg.png", width=60)
     st.title("Proyecto de Aula")
     st.markdown("**Asignatura:** Minería de Datos")
     st.markdown("**Institución:** Universidad de la Costa (CUC)")
@@ -60,9 +58,8 @@ tab1, tab2, tab3 = st.tabs(["🔮 Predicción Interactiva", "📊 Exploración d
 # ==========================================
 with tab1:
     st.subheader("Ingreso de Parámetros Clínicos del Paciente")
-    st.markdown("Complete los siguientes campos respetando los rangos fisiológicos válidos. Puede cargar un caso de prueba verificado para validar la consistencia con el notebook.")
+    st.markdown("Complete los siguientes campos respetando los rangos fisiológicos válidos. Puede presionar el botón para cargar un caso de prueba verificado del test set.")
 
-    # Botón para precargar caso de prueba conocido del test set
     if st.button("📋 Cargar Registro Verificado del Conjunto de Prueba (Índice 0)"):
         st.session_state["preg"] = 3
         st.session_state["gluc"] = 125.5
@@ -85,12 +82,12 @@ with tab1:
             glucose = st.number_input(
                 "Glucosa Plasmática a 2h (mg/dL)", 
                 min_value=40.0, max_value=300.0, value=st.session_state.get("gluc", 115.0), step=0.5,
-                help="Concentración de glucosa en prueba de tolerancia oral (Rango fisiológico: 40 - 300 mg/dL)."
+                help="Concentración de glucosa en prueba de tolerancia oral (Rango: 40 - 300 mg/dL)."
             )
             blood_pressure = st.number_input(
                 "Presión Arterial Diastólica (mm Hg)", 
                 min_value=20.0, max_value=150.0, value=st.session_state.get("bp", 72.0), step=0.5,
-                help="Presión diastólica en reposo (Rango fisiológico: 20 - 150 mm Hg)."
+                help="Presión diastólica en reposo (Rango: 20 - 150 mm Hg)."
             )
             skin_thickness = st.number_input(
                 "Grosor Pliegue Cutáneo Tríceps (mm)", 
@@ -112,7 +109,7 @@ with tab1:
             dpf = st.number_input(
                 "Función de Pedigrí de Diabetes (DPF)", 
                 min_value=0.050, max_value=2.500, value=st.session_state.get("dpf", 0.450), step=0.005, format="%.3f",
-                help="Puntaje adimensional de carga genética familiar (Rango: 0.05 - 2.50)."
+                help="Puntaje adimensional de susceptibilidad genética (Rango: 0.05 - 2.50)."
             )
             age = st.number_input(
                 "Edad Cronológica (Años)", 
@@ -120,10 +117,9 @@ with tab1:
                 help="Edad de la paciente en años cumplidos (Rango: 18 - 100 años)."
             )
 
-        submitted = st.form_submit_button("🔍 Ejecutar Predicción", use_container_width=True)
+        submitted = st.form_submit_button("🔍 Ejecutar Predicción")
 
     if submitted:
-        # Validaciones adicionales de seguridad clínica
         errores = []
         if glucose <= 0 or blood_pressure <= 0 or bmi <= 0:
             errores.append("Los parámetros fisiológicos vitales (Glucosa, Presión Arterial, IMC) deben ser mayores a cero.")
@@ -229,13 +225,17 @@ with tab3:
 
     with c_mat:
         st.markdown("#### Matriz de Confusión (Conjunto de Prueba, N=192)")
-        z = [[100, 25], [16, 51]]
-        x_labels = ["Predicho: Negativo (0)", "Predicho: Positivo (1)"]
-        y_labels = ["Real: Negativo (0)", "Real: Positivo (1)"]
-        fig_cm = ff.create_annotated_heatmap(
-            z, x=x_labels, y=y_labels, colorscale="Blues", showscale=False
+        cm_data = [[100, 25], [16, 51]]
+        cm_df = pd.DataFrame(
+            cm_data,
+            index=["Real: Negativo (0)", "Real: Positivo (1)"],
+            columns=["Predicho: Negativo (0)", "Predicho: Positivo (1)"]
         )
-        fig_cm.update_layout(height=350, margin=dict(l=20, r=20, t=30, b=20))
+        fig_cm = px.imshow(
+            cm_df, text_auto=True, color_continuous_scale="Blues",
+            title="Matriz de Confusión en Prueba"
+        )
+        fig_cm.update_layout(height=350, margin=dict(l=20, r=20, t=40, b=20))
         st.plotly_chart(fig_cm, use_container_width=True)
         st.caption("Verdaderos Negativos: 100 | Falsos Positivos: 25 | Falsos Negativos: 16 | Verdaderos Positivos: 51")
 
